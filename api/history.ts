@@ -8,24 +8,23 @@ export default async function handler(req: Request) {
   const limit = Number(url.searchParams.get("limit") || 10);
   const offset = Number(url.searchParams.get("offset") || 0);
 
-  try {
-    const res = await fetch(
-      `https://indialotteryapi.com/wp-json/klr/v1/history?limit=${limit}&offset=${offset}`,
-      { cache: "no-store" }
-    );
+  const draws = (await kv.get<string[]>("draw_list")) || [];
 
-    if (!res.ok)
-      throw new Error();
+  const slice = draws.slice(offset, offset + limit);
 
-    const data = await res.json();
+  const results = [];
 
-    return new Response(JSON.stringify(data), {
-      headers: { "Content-Type": "application/json" }
-    });
-
-  } catch {
-    return new Response(JSON.stringify({
-      error: "history unavailable"
-    }), { status: 500 });
+  for (const d of slice) {
+    const data = await kv.get(`draw_${d}`);
+    if (data) results.push(data);
   }
+
+  return new Response(JSON.stringify({
+    total: draws.length,
+    limit,
+    offset,
+    items: results
+  }), {
+    headers: { "Content-Type": "application/json" }
+  });
 }
