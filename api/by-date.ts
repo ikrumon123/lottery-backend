@@ -7,37 +7,15 @@ export default async function handler(req: Request) {
   const url = new URL(req.url);
   const date = url.searchParams.get("date");
 
-  if (!date) {
-    return new Response(JSON.stringify({
-      error: "missing date parameter"
-    }), { status: 400 });
-  }
+  if (!date)
+    return new Response(JSON.stringify({ error: "date required" }), { status: 400 });
 
-  // check cache first
-  let cached = await kv.get<any>(`result_${date}`);
+  const data = await kv.get(`draw_${date}`);
 
-  // if not cached, fetch and store
-  if (!cached) {
-    try {
-      const res = await fetch(
-        `https://indialotteryapi.com/wp-json/klr/v1/by-date?date=${date}`,
-        { cache: "no-store" }
-      );
+  if (!data)
+    return new Response(JSON.stringify({ error: "draw not found" }), { status: 404 });
 
-      if (res.ok) {
-        cached = await res.json();
-        await kv.set(`result_${date}`, cached);
-      }
-    } catch {}
-  }
-
-  if (!cached) {
-    return new Response(JSON.stringify({
-      error: "no data found"
-    }), { status: 404 });
-  }
-
-  return new Response(JSON.stringify(cached), {
+  return new Response(JSON.stringify(data), {
     headers: { "Content-Type": "application/json" }
   });
 }
