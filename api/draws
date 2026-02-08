@@ -1,0 +1,14 @@
+import { kv } from '@vercel/kv';
+
+export const config = { runtime: "edge" };
+
+export default async function handler() {
+
+  const draws = (await kv.get<string[]>("draw_list")) || [];
+
+  return new Response(JSON.stringify({
+    draws
+  }), {
+    headers: { "Content-Type": "application/json" }
+  });
+}
